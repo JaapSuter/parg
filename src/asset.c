@@ -8,7 +8,6 @@ KHASH_MAP_INIT_INT(assmap, par_buffer*)
 
 static khash_t(assmap)* _asset_registry = 0;
 
-static sds _exedir = 0;
 static sds _baseurl = 0;
 
 #ifdef EMSCRIPTEN
@@ -60,41 +59,16 @@ sds par_asset_baseurl()
 
 void par_asset_set_baseurl(const char* url) { _baseurl = sdsnew(url); }
 
-sds par_asset_whereami()
-{
-    if (!_exedir) {
-        _exedir = sdsnew("web/");
-    }
-    return _exedir;
-}
-
-int par_asset_fileexists(sds fullpath) { return 1; }
-
 int par_asset_download(const char* filename, sds targetpath) { return 0; }
 
 #else
 
-#include "whereami.h"
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
 
 void* kopen(const char* fn, int* _fd);
 int kclose(void* a);
-
-sds par_asset_whereami()
-{
-    if (!_exedir) {
-        int length = wai_getExecutablePath(0, 0, 0);
-        _exedir = sdsnewlen("", length);
-        int dirlen;
-        wai_getExecutablePath(_exedir, length, &dirlen);
-        sdsrange(_exedir, 0, dirlen);
-    }
-    return _exedir;
-}
-
-int par_asset_fileexists(sds fullpath) { return access(fullpath, F_OK) != -1; }
 
 int par_asset_download(const char* filename, sds targetpath)
 {

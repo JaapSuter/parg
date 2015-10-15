@@ -6,10 +6,8 @@
 
 sds par_token_to_sds(par_token token);
 par_buffer* par_buffer_from_path(const char* filepath);
-sds par_asset_whereami();
 void par_asset_set_baseurl(const char* url);
 sds par_asset_baseurl();
-int par_asset_fileexists(sds fullpath);
 int par_asset_download(const char* filename, sds targetpath);
 par_buffer* par_asset_to_buffer(par_token id);
 

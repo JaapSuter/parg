@@ -4,6 +4,10 @@
 #include <vmath.h>
 #include <dmath.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // ENUMS & CONSTANTS
 
 #define PAR_PI 3.14159265359
@@ -35,6 +39,25 @@ typedef uint32_t par_token;
 #define PAR_TOKEN_DEFINE(NAME, VAL) NAME = par_token_from_string(VAL);
 const char* par_token_to_string(par_token);
 par_token par_token_from_string(const char*);
+
+// FILE
+
+typedef unsigned char par_byte;
+const char* par_file_whereami();
+int par_file_http_to_memory(const char* url, par_byte** buffer, int* len);
+int par_file_http_to_local(const char* srcurl, const char* dstpath);
+int par_file_local_to_memory(const char* filepath, par_byte** buffer, int* len);
+int par_file_memory_to_local(const char* filepath, par_byte* buffer, int len);
+int par_file_is_http(const char* locator);
+int par_file_is_local(const char* locator);
+void par_file_get_basename(const char* srcpath, char* dstbuf);
+void par_file_set_cache_folder(const char* path);
+int par_file_cache_to_memory(const char* name,
+    par_byte** payload, int* payloadsize,
+    par_byte** header, int* headersize);
+void par_file_memory_to_cache(const char* name,
+    par_byte* payload, int payloadsize,
+    par_byte* header, int headersize);
 
 // ASSET
 
@@ -127,3 +150,7 @@ void par_zcam_grab_end();
 Point3 par_zcam_matrices(Matrix4* proj, Matrix4* view);
 DPoint3 par_zcam_dmatrices(DMatrix4* proj, DMatrix4* view);
 void par_zcam_highprec(Matrix4* vp, Point3* eyepos_lo, Point3* eyepos_hi);
+
+#ifdef __cplusplus
+}
+#endif

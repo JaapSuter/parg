@@ -102,9 +102,9 @@ par_buffer* par_buffer_from_path(const char* filename)
     printf("TODO: download %s here\n", fullurl);
     sdsfree(fullurl);
 #else
-    sds execdir = par_asset_whereami();
-    sds fullpath = sdscat(sdsdup(execdir), filename);
-    if (!par_asset_fileexists(fullpath)) {
+    const char* execdir = par_file_whereami();
+    sds fullpath = sdscat(sdsnew(execdir), filename);
+    if (!par_file_is_local(fullpath)) {
         par_asset_download(filename, fullpath);
     }
     par_buffer* retval = par_buffer_from_file(fullpath);
