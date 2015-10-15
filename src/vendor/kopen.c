@@ -71,14 +71,14 @@ static int http_open(const char *fn)
 {
 	char *p, *proxy, *q, *http_host, *host, *port, *path, *buf;
 	int fd, ret, l;
+	int https = strstr(fn, "https://") == fn;
+    int hostoff = https ? 8 : 7;
 
-	/* parse URL; adapted from khttp_parse_url() in knetfile.c */
-	if (strstr(fn, "http://") != fn) return 0;
 	// set ->http_host
-	for (p = (char*)fn + 7; *p && *p != '/'; ++p);
-	l = p - fn - 7;
+	for (p = (char*)fn + hostoff; *p && *p != '/'; ++p);
+	l = p - fn - hostoff;
 	http_host = calloc(l + 1, 1);
-	strncpy(http_host, fn + 7, l);
+	strncpy(http_host, fn + hostoff, l);
 	http_host[l] = 0;
 	for (q = http_host; *q && *q != ':'; ++q);
 	if (*q == ':') *q++ = 0;
@@ -92,7 +92,7 @@ static int http_open(const char *fn)
 	} else {
 		host = (strstr(proxy, "http://") == proxy)? strdup(proxy + 7) : strdup(proxy);
 		for (q = host; *q && *q != ':'; ++q);
-		if (*q == ':') *q++ = 0; 
+		if (*q == ':') *q++ = 0;
 		port = strdup(*q? q : "80");
 		path = strdup(fn);
 	}
@@ -101,8 +101,15 @@ static int http_open(const char *fn)
 	l = 0;
 	fd = socket_connect(host, port);
 	buf = calloc(0x10000, 1); // FIXME: I am lazy... But in principle, 64KB should be large enough.
-	l += sprintf(buf + l, "GET %s HTTP/1.0\r\nHost: %s\r\n", path, http_host);
-	l += sprintf(buf + l, "\r\n");
+	l += sprintf(buf + l, "GET %s HTTP/1.1\r\nHost: %s\r\n", path, http_host);
+	l += sprintf(buf + l, "Connection: keep-alive\n"
+    	"Pragma: no-cache\n"
+    	"Cache-Control: no-cache\n"
+    	"Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8\n"
+    	"Upgrade-Insecure-Requests: 1\n"
+    	"User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.64 Safari/537.36\n"
+    	"Accept-Encoding: gzip, deflate, sdch\n"
+    	"Accept-Language: en-US,en;q=0.8\n\r\n");
 	write(fd, buf, l);
 	l = 0;
 	while (read(fd, buf + l, 1)) { // read HTTP header; FIXME: bad efficiency
@@ -117,6 +124,7 @@ static int http_open(const char *fn)
 	}
 	ret = strtol(buf + 8, &p, 0); // HTTP return code
 	if (ret != 200) {
+        printf("\tHTTP return code: %d\n", ret);
 		close(fd);
 		fd = -1;
 	}
@@ -251,7 +259,7 @@ void *kopen(const char *fn, int *_fd)
 {
 	koaux_t *aux = 0;
 	*_fd = -1;
-	if (strstr(fn, "http://") == fn) {
+	if (strstr(fn, "http://") == fn || strstr(fn, "https://") == fn) {
 		aux = calloc(1, sizeof(koaux_t));
 		aux->type = KO_HTTP;
 		aux->fd = http_open(fn);
