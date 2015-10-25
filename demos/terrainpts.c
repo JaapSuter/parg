@@ -82,11 +82,16 @@ int draw()
     Matrix4 projection;
     par_zcam_matrices(&projection, &view);
     Matrix4 model = M4MakeIdentity();
+
+    Point3 eyepos;
+    par_zcam_highprec(0, 0, &eyepos);
+
     Matrix4 modelview = M4Mul(view, model);
     Matrix4 mvp = M4Mul(projection, modelview);
     par_draw_clear();
     par_shader_bind(P_SIMPLE);
     par_uniform_matrix4f(U_MVP, &mvp);
+    par_uniform_point(U_EYEPOS, &eyepos);
     par_varray_enable(ptsvbo, A_POSITION, 2, PAR_FLOAT, 0, 0);
     par_varray_enable(vidvbo, A_VERTEXID, 1, PAR_USHORT, 0, 0);
     par_draw_points(npts);

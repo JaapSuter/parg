@@ -2,11 +2,14 @@
 // @program p_simple, vertex, fragment
 
 uniform mat4 u_mvp;
+uniform vec3 u_eyepos;
 
 -- vertex
 
 attribute vec4 a_position;
 attribute float a_vertexid;
+
+const vec4 OUTSIDE_FRUSTUM = vec4(2, 2, 2, 1);
 
 void main()
 {
@@ -15,6 +18,9 @@ void main()
     p.y *= -1.0;
     gl_Position = u_mvp * p;
     gl_PointSize = 2.0;
+    if (a_vertexid > 10000.0 && u_eyepos.z > -1.0) {
+        gl_Position = OUTSIDE_FRUSTUM;
+    }
 }
 
 -- fragment
