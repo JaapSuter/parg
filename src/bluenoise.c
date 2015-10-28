@@ -109,6 +109,15 @@ typedef struct {
     par_vec2* subpts;
 } par_tile;
 
+typedef struct par_node_s {
+    par_tile* tile;
+    float x;
+    float y;
+    int level;
+    struct par_node_s* children;
+    struct par_node_s* next_child;
+} par_node;
+
 struct par_bluenoise_context_s {
     par_vec3* points;
     par_tile* tiles;
@@ -145,9 +154,12 @@ static float sample_density(par_bluenoise_context* ctx, float x, float y)
     return density[iy * width + ix];
 }
 
-static void recurse_tile(
-    par_bluenoise_context* ctx, par_tile* tile, float x, float y, int level)
+static void apply_tile(par_bluenoise_context* ctx, par_node* node)
 {
+    par_tile* tile = node->tile;
+    float x = node->x;
+    float y = node->y;
+    int level = node->level;
     float left = ctx->left, right = ctx->right;
     float top = ctx->top, bottom = ctx->bottom;
     float mag = ctx->mag;
@@ -178,12 +190,25 @@ static void recurse_tile(
         return;
     }
     level++;
+    par_node** ppnext = &node->children;
     for (int ty = 0; ty < ctx->nsubtiles; ty++) {
         for (int tx = 0; tx < ctx->nsubtiles; tx++) {
             int tileIndex = tile->subdivs[0][ty * ctx->nsubtiles + tx];
-            par_tile* subtile = &ctx->tiles[tileIndex];
-            recurse_tile(ctx, subtile, x + tx * scale, y + ty * scale, level);
+            par_node* child = calloc(sizeof(par_node), 1);
+            child->tile = &ctx->tiles[tileIndex];
+            child->x = x + tx * scale;
+            child->y = y + ty * scale;
+            child->level = level;
+            *ppnext = child;
+            ppnext = &child->next_child;
         }
+    }
+    node = node->children;
+    while (node) {
+        apply_tile(ctx, node);
+        par_node* next = node->next_child;
+        free(node);
+        node = next;
     }
 }
 
@@ -224,7 +249,11 @@ float* par_bluenoise_generate(par_bluenoise_context* ctx, float density,
         ctx->points[ctx->npoints].rank = i * factor;
         ctx->npoints++;
     }
-    recurse_tile(ctx, &ctx->tiles[0], 0, 0, 0);
+
+    par_node root = {0};
+    root.tile = &ctx->tiles[0];
+    apply_tile(ctx, &root);
+
     *npts = ctx->npoints;
     return &ctx->points->x;
 }
